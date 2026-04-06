@@ -2,58 +2,72 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Reward-Sense: The Golden Vault</title>
+    <title>Reward-Sense: The Golden Vault v2.2</title>
     <style>
-        body { background: #000; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; overflow: hidden; height: 100vh; width: 100vw; }
         
         /* UI de Casino */
-        #ui { position: absolute; top: 0; width: 100%; padding: 25px; display: flex; justify-content: space-around; font-size: 24px; background: linear-gradient(to bottom, rgba(255,191,0,0.1), transparent); z-index: 10; border-bottom: 1px solid #333; }
-        #vault-container { border: 2px solid #FFBF00; padding: 10px 30px; border-radius: 50px; background: rgba(0,0,0,0.8); box-shadow: 0 0 20px rgba(255,191,0,0.3); }
+        #ui { position: absolute; top: 0; width: 100%; padding: 25px; display: flex; justify-content: space-around; font-size: 24px; background: linear-gradient(to bottom, rgba(255,191,0,0.1), transparent); z-index: 100; box-sizing: border-box; }
+        #vault-container { border: 2px solid #FFBF00; padding: 10px 30px; border-radius: 50px; background: rgba(0,0,0,0.8); }
         .gold { color: #FFBF00; font-weight: bold; text-shadow: 0 0 10px #FFBF00; }
         
         /* Barra de Progreso */
-        #progress-container { position: absolute; bottom: 0; width: 100%; height: 12px; background: #111; }
+        #progress-container { position: absolute; bottom: 0; width: 100%; height: 12px; background: #111; z-index: 100; }
         #progress-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #555, #FFBF00); transition: width 0.5s; }
 
-        /* Formas */
-        .shape { display: none; margin: auto; transition: transform 0.1s; }
-        #circle { width: 180px; height: 180px; border: 10px solid #FFBF00; border-radius: 50%; filter: drop-shadow(0 0 20px #FFBF00); }
-        #triangle { width: 0; height: 0; border-left: 90px solid transparent; border-right: 90px solid transparent; border-bottom: 180px solid #ff4136; filter: drop-shadow(0 0 20px #ff4136); }
+        /* --- POSICIONAMIENTO ABSOLUTO (El Fix) --- */
+        .shape { 
+            display: none; 
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            z-index: 50;
+        }
+
+        #circle { width: 180px; height: 180px; border: 10px solid #FFBF00; border-radius: 50%; box-shadow: 0 0 30px #FFBF00; }
+        
+        /* Triángulo corregido para no colapsar */
+        #triangle { 
+            width: 0; height: 0; 
+            border-left: 90px solid transparent; 
+            border-right: 90px solid transparent; 
+            border-bottom: 180px solid #ff4136; 
+            filter: drop-shadow(0 0 15px #ff4136);
+        }
+
         #square { width: 160px; height: 160px; border: 10px solid #fff; }
         #target { width: 180px; height: 180px; background: #fff; border-radius: 15px; box-shadow: 0 0 40px #fff; }
-        #fixation { width: 15px; height: 15px; background: #444; border-radius: 50%; }
+        #fixation { width: 16px; height: 16px; background: #555; border-radius: 50%; }
 
-        /* Animaciones de Feedback */
-        #feedback { font-size: 80px; font-weight: 900; font-style: italic; }
+        #feedback { font-size: 80px; font-weight: 900; font-style: italic; z-index: 150; }
         .shake { animation: shake 0.4s; }
-        @keyframes shake { 0% { transform: translate(1px, 1px); } 20% { transform: translate(-3px, 0px); } 40% { transform: translate(3px, 2px); } 60% { transform: translate(-3px, 1px); } 80% { transform: translate(3px, -1px); } 100% { transform: translate(0,0); } }
+        @keyframes shake { 0% { transform: translate(1px, 1px); } 20% { transform: translate(-3px, 0px); } 100% { transform: translate(0,0); } }
 
-        /* Pantallas */
-        #setup-screen { max-width: 650px; background: #111; padding: 40px; border-radius: 30px; border: 2px solid #333; }
-        .btn { background: #FFBF00; color: #000; padding: 25px; font-size: 22px; font-weight: 900; border: none; border-radius: 12px; cursor: pointer; width: 100%; margin-top: 25px; transition: 0.3s; }
-        .btn:hover { background: #fff; transform: scale(1.02); }
-        input { width: 90%; padding: 15px; font-size: 20px; border-radius: 10px; border: 2px solid #444; background: #000; color: #FFBF00; text-align: center; margin: 15px 0; }
+        /* Pantalla Inicial */
+        #setup-screen { 
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 90%; max-width: 600px; background: #111; padding: 40px; border-radius: 30px; border: 2px solid #333; z-index: 200; text-align: center;
+        }
+        .btn { background: #FFBF00; color: #000; padding: 25px; font-size: 22px; font-weight: 900; border: none; border-radius: 12px; cursor: pointer; width: 100%; margin-top: 25px; }
+        input { width: 80%; padding: 15px; font-size: 20px; border-radius: 10px; border: 2px solid #444; background: #000; color: #FFBF00; text-align: center; }
+        #final { display: none; text-align: center; z-index: 210; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; }
     </style>
 </head>
 <body id="game-body">
 
     <div id="ui" style="display:none;">
-        <div id="trial-info">RONDA <span id="ronda-val" class="gold">0</span> / 36</div>
+        <div>RONDA <span id="ronda-val" class="gold">0</span> / 36</div>
         <div id="vault-container">💰 BÓVEDA: <span id="score-display" class="gold">1000</span></div>
-        <div id="streak-info">RACHA: <span id="streak-val" class="gold">0</span></div>
+        <div>RACHA: <span id="streak-val" class="gold">0</span></div>
     </div>
 
     <div id="progress-container"><div id="progress-bar"></div></div>
 
     <div id="setup-screen">
-        <h1 style="color: #FFBF00; font-size: 40px; margin-bottom: 10px;">REWARD-SENSE <span style="color:#fff">GOLD</span></h1>
-        <p style="font-size: 18px;">Bienvenido, Doctor. El objetivo es llenar la bóveda.</p>
-        <div style="text-align: left; background: #222; padding: 20px; border-radius: 15px; margin: 20px 0;">
-            🟡 <b>Círculos:</b> +100 Monedas. (Racha x3 = +200)<br>
-            🔺 <b>Triángulos:</b> Evita perder -100 Monedas.<br>
-            ⬜ <b>Cuadrados:</b> Calibración (Sin puntos).
-        </div>
-        <input type="text" id="patient-id" placeholder="NOMBRE DEL PACIENTE / ID">
+        <h1 style="color: #FFBF00;">REWARD-SENSE GOLD</h1>
+        <p>Gana 3.500 monedas para el Rango Oro.</p>
+        <input type="text" id="patient-id" placeholder="ID DEL PACIENTE">
         <button class="btn" onclick="initTest()">INICIAR OPERACIÓN</button>
     </div>
 
@@ -64,12 +78,12 @@
     <div id="target" class="shape"></div>
     <div id="feedback" class="shape"></div>
 
-    <div id="final" style="display:none;">
+    <div id="final">
         <h1 style="font-size: 50px;">TEST COMPLETADO</h1>
-        <div id="vault-final" style="font-size: 40px; margin: 30px; border: 4px solid #FFBF00; padding: 40px; display: inline-block; border-radius: 20px;">
-            TOTAL EN BÓVEDA: <br><span id="puntos-finales" class="gold">0</span> 💰
+        <div style="font-size: 40px; margin: 30px; border: 4px solid #FFBF00; padding: 40px; border-radius: 20px; background: #111;">
+            TOTAL: <span id="puntos-finales" class="gold">0</span> 💰
         </div>
-        <button class="btn" id="downloadBtn" style="max-width: 400px;">DESCARGAR Y ENVIAR DATOS</button>
+        <button class="btn" id="downloadBtn" style="max-width: 400px;">DESCARGAR RESULTADOS</button>
     </div>
 
     <video id="webcam" autoplay muted style="display:none;"></video>
@@ -81,7 +95,7 @@
         let targetDuration = 450;
         let trials = [];
         let recordedChunks = [];
-        let eventLog = "Paciente,Tipo,Inicio_Espera_Seg,Fin_Espera_Seg,Puntos_Ronda,Racha\n";
+        let eventLog = "Paciente,Tipo,Inicio_Espera_Seg,Fin_Espera_Seg,Puntos,Racha\n";
         let videoStartTime = 0;
         let patientName = "";
 
@@ -91,16 +105,18 @@
 
         async function initTest() {
             patientName = document.getElementById('patient-id').value.trim() || "Anonimo";
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            document.getElementById('webcam').srcObject = stream;
-            mediaRecorder = new MediaRecorder(stream);
-            mediaRecorder.ondataavailable = e => recordedChunks.push(e.data);
-            mediaRecorder.onstop = prepareDownloads;
-            mediaRecorder.start();
-            videoStartTime = Date.now();
-            document.getElementById('setup-screen').style.display = 'none';
-            document.getElementById('ui').style.display = 'flex';
-            nextTrial();
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                document.getElementById('webcam').srcObject = stream;
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.ondataavailable = e => recordedChunks.push(e.data);
+                mediaRecorder.onstop = prepareDownloads;
+                mediaRecorder.start();
+                videoStartTime = Date.now();
+                document.getElementById('setup-screen').style.display = 'none';
+                document.getElementById('ui').style.display = 'flex';
+                nextTrial();
+            } catch(e) { alert("Permite la cámara para jugar."); }
         }
 
         async function nextTrial() {
@@ -112,58 +128,58 @@
             
             const type = trials[currentTrial-1];
 
-            showElement('fixation'); await sleep(2000); hideAll();
+            // 1. FIJACIÓN (Limpia)
+            hideAll(); showElement('fixation'); await sleep(2000); 
             
+            // 2. CUE (Limpia)
+            hideAll();
             if(type === 'reward') showElement('circle');
             else if(type === 'loss') showElement('triangle');
             else showElement('square');
-            await sleep(1500); hideAll();
+            await sleep(1500); 
 
+            // 3. ESPERA (Limpia)
+            hideAll();
             let startWait = (Date.now() - videoStartTime) / 1000;
             showElement('fixation'); await sleep(5000); 
             let endWait = (Date.now() - videoStartTime) / 1000;
-            hideAll();
 
-            showElement('target');
+            // 4. TARGET
+            hideAll(); showElement('target');
             let t0 = Date.now();
             let rt = await waitForSpace(t0);
             hideAll();
 
+            // 5. FEEDBACK
             const fb = document.getElementById('feedback');
             const body = document.getElementById('game-body');
-            let pointsGained = 0;
+            let pts = 0;
 
             if (rt > 0 && rt < targetDuration) {
-                // LOGICA DE RACHA: Solo cuenta si NO es neutral
                 if(type !== 'neutral') {
                     streak++;
-                    let multiplier = (streak >= 3 && type === 'reward') ? 2 : 1;
-                    if(type === 'reward') pointsGained = 100 * multiplier;
-                    fb.innerText = multiplier > 1 ? "¡JACKPOT! +200" : "¡GANASTE! +100";
-                } else {
-                    fb.innerText = "OK"; // Neutral solo feedback visual simple
-                }
+                    let mult = (streak >= 3 && type === 'reward') ? 2 : 1;
+                    if(type === 'reward') pts = 100 * mult;
+                    fb.innerText = mult > 1 ? "¡JACKPOT! +200" : "¡GANASTE! +100";
+                } else fb.innerText = "OK";
                 fb.style.color = "#00ff00";
                 targetDuration = Math.max(180, targetDuration - 20);
             } else {
-                // Si falla en círculo o triángulo, la racha vuelve a 0
                 if(type !== 'neutral') streak = 0;
-                
                 if(type === 'loss') {
-                    pointsGained = -100;
+                    pts = -100;
                     body.classList.add('shake');
                     setTimeout(() => body.classList.remove('shake'), 400);
                 }
-                fb.innerText = rt === 0 ? "¡PERDISTE!" : "¡MUY PRONTO!";
+                fb.innerText = rt === 0 ? "¡PERDISTE!" : "¡PRONTO!";
                 fb.style.color = "#ff4136";
                 targetDuration = Math.min(700, targetDuration + 30);
             }
 
-            score += pointsGained;
+            score += pts;
             document.getElementById('score-display').innerText = score;
             document.getElementById('streak-val').innerText = streak;
-            
-            eventLog += `${patientName},${type},${startWait.toFixed(2)},${endWait.toFixed(2)},${pointsGained},${streak}\n`;
+            eventLog += `${patientName},${type},${startWait.toFixed(2)},${endWait.toFixed(2)},${pts},${streak}\n`;
             
             showElement('feedback'); await sleep(1200); hideAll();
             nextTrial();
@@ -172,7 +188,6 @@
         function showElement(id) { document.getElementById(id).style.display = 'block'; }
         function hideAll() { ['fixation','circle','triangle','square','target','feedback'].forEach(id => document.getElementById(id).style.display = 'none'); }
         function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-        
         function waitForSpace(t0) {
             return new Promise(resolve => {
                 let solved = false;
@@ -181,14 +196,12 @@
                 window.addEventListener('keydown', h);
             });
         }
-
         function finishTest() {
             mediaRecorder.stop();
             document.getElementById('ui').style.display = 'none';
             document.getElementById('final').style.display = 'block';
             document.getElementById('puntos-finales').innerText = score;
         }
-
         function prepareDownloads() {
             const vBlob = new Blob(recordedChunks, { type: 'video/webm' });
             const lBlob = new Blob([eventLog], { type: 'text/plain' });
