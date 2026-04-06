@@ -2,100 +2,180 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reward-Sense Lab | Test de Biomarcadores</title>
+    <title>Reward-Sense Clinical Web v1.0</title>
     <style>
-        body { background-color: #000; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
-        #setup, #final { text-align: center; max-width: 600px; padding: 20px; border: 1px solid #333; border-radius: 10px; background: #111; }
-        #game { display: none; width: 800px; height: 600px; position: relative; }
-        .btn { background-color: #FFBF00; color: #000; border: none; padding: 15px 30px; font-size: 18px; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 20px; }
-        .btn:hover { background-color: #e5ab00; }
-        #target { width: 160px; height: 160px; background-color: #828282; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: none; }
-        #cue-circle { width: 180px; height: 180px; border: 5px solid #FFBF00; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: none; }
-        #cue-triangle { width: 0; height: 0; border-left: 90px solid transparent; border-right: 90px solid transparent; border-bottom: 180px solid #FF4136; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100px); display: none; }
-        #cue-neutral { width: 140px; height: 140px; border: 5px solid #fff; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: none; }
-        #fixation { width: 10px; height: 10px; background-color: #444; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        body { background: #000; color: #fff; font-family: Arial; text-align: center; margin: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        #ui { position: absolute; top: 20px; width: 100%; display: flex; justify-content: space-around; font-size: 24px; color: #aaa; }
+        .shape { display: none; margin: auto; }
+        #circle { width: 180px; height: 180px; border: 6px solid #FFBF00; border-radius: 50%; }
+        #triangle { width: 0; height: 0; border-left: 90px solid transparent; border-right: 90px solid transparent; border-bottom: 180px solid #ff4d4d; }
+        #square { width: 160px; height: 160px; border: 6px solid #fff; }
+        #target { width: 180px; height: 180px; background: #888; }
+        #fixation { width: 12px; height: 12px; background: #444; border-radius: 50%; }
+        #feedback { font-size: 60px; font-weight: bold; display: none; }
+        #instructions { max-width: 700px; line-height: 1.6; background: #111; padding: 30px; border-radius: 15px; border: 1px solid #333; }
+        .btn { background: #FFBF00; color: #000; padding: 20px 40px; font-size: 20px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; margin-top: 20px; }
     </style>
 </head>
 <body>
 
-    <div id="setup">
-        <h1>Reward-Sense Lab</h1>
-        <p>Este test de 3 minutos medirá tu respuesta pupilar ante recompensas.</p>
-        <p style="color: #FF4136;">REQUISITOS: Luz de frente clara, cara descubierta y mirada fija al centro.</p>
-        <button class="btn" onclick="startCamera()">ACTIVAR CÁMARA Y EMPEZAR</button>
+    <div id="ui">
+        <div id="trial-count">Ronda: 0 / 36</div>
+        <div id="score-display" style="color: white;">Puntos: 1000</div>
     </div>
 
-    <div id="game">
-        <div id="fixation"></div>
-        <div id="cue-circle"></div>
-        <div id="cue-triangle"></div>
-        <div id="cue-neutral"></div>
-        <div id="target"></div>
+    <div id="instructions">
+        <h1 style="color: #FFBF00;">REWARD-SENSE LAB</h1>
+        <p>1. <b>Círculo Amarillo:</b> Puedes ganar +100.<br>
+           2. <b>Triángulo Rojo:</b> Evita perder -100.<br>
+           3. <b>Cuadrado Blanco:</b> Prueba neutra (0).</p>
+        <p>Cuando aparezca el <b>CUADRADO GRIS</b>, pulsa la <b>BARRA ESPACIADORA</b> lo más rápido que puedas.</p>
+        <p style="color: #888;">Se grabará un video de tus ojos. Asegúrate de tener buena luz de frente.</p>
+        <button class="btn" onclick="initTest()">EMPEZAR TEST</button>
     </div>
 
-    <div id="final" style="display:none;">
-        <h2>Test Completado</h2>
-        <p>Tu cerebro ha sido mapeado. Por favor, descarga el video de tus ojos y envíaselo al Doctor por WhatsApp o Email.</p>
-        <button class="btn" id="downloadBtn">DESCARGAR VIDEO (.webm)</button>
+    <div id="fixation" class="shape"></div>
+    <div id="circle" class="shape"></div>
+    <div id="triangle" class="shape"></div>
+    <div id="square" class="shape"></div>
+    <div id="target" class="shape"></div>
+    <div id="feedback" class="shape"></div>
+
+    <div id="final" style="display:none; text-align: center;">
+        <h1>¡Test Completado!</h1>
+        <p id="puntos-finales"></p>
+        <button class="btn" id="downloadBtn">DESCARGAR VIDEO Y ENVIAR AL DOCTOR</button>
     </div>
 
-    <video id="preview" autoplay muted style="display:none;"></video>
+    <video id="webcam" autoplay muted style="display:none;"></video>
 
     <script>
+        let score = 1000;
+        let currentTrial = 0;
+        let targetDuration = 450;
+        let trials = [];
         let mediaRecorder;
         let recordedChunks = [];
+        let canPress = false;
+        let startTime = 0;
+
+        // Generar 36 rondas balanceadas
         const types = ['reward', 'loss', 'neutral'];
-        let trials = [];
-        for(let i=0; i<4; i++) trials.push(...types); // 12 rondas para el piloto rápido
+        for(let i=0; i<12; i++) trials.push(...types);
         trials = trials.sort(() => Math.random() - 0.5);
 
-        async function startCamera() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { frameRate: 30 } });
-                document.getElementById('preview').srcObject = stream;
-                mediaRecorder = new MediaRecorder(stream);
-                mediaRecorder.ondataavailable = e => recordedChunks.push(e.data);
-                mediaRecorder.onstop = () => {
-                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
-                    const url = URL.createObjectURL(blob);
-                    document.getElementById('downloadBtn').onclick = () => {
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = 'test_ojos_paciente.webm';
-                        a.click();
-                    };
-                };
-                mediaRecorder.start();
-                document.getElementById('setup').style.display = 'none';
-                document.getElementById('game').style.display = 'block';
-                runTrials();
-            } catch (err) { alert("Error al acceder a la cámara. Revisa los permisos."); }
+        async function initTest() {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            document.getElementById('webcam').srcObject = stream;
+            mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder.ondataavailable = e => recordedChunks.push(e.data);
+            mediaRecorder.onstop = saveVideo;
+            mediaRecorder.start();
+
+            document.getElementById('instructions').style.display = 'none';
+            nextTrial();
         }
 
-        async function runTrials() {
-            for (let i = 0; i < trials.length; i++) {
-                const type = trials[i];
-                // 1. Fijación (2s)
-                await sleep(2000);
-                // 2. Cue (1.5s)
-                const cue = document.getElementById(`cue-${type === 'reward' ? 'circle' : type === 'loss' ? 'triangle' : 'neutral'}`);
-                cue.style.display = 'block';
-                await sleep(1500);
-                cue.style.display = 'none';
-                // 3. Espera (5s) - AQUÍ SE CAPTURA LA PUPILA
-                await sleep(5000);
-                // 4. Target (0.5s)
-                document.getElementById('target').style.display = 'block';
-                await sleep(500);
-                document.getElementById('target').style.display = 'none';
+        async function nextTrial() {
+            if (currentTrial >= 36) {
+                finishTest();
+                return;
             }
-            mediaRecorder.stop();
-            document.getElementById('game').style.display = 'none';
-            document.getElementById('final').style.display = 'block';
+
+            currentTrial++;
+            document.getElementById('trial-count').innerText = `Ronda: ${currentTrial} / 36`;
+            const type = trials[currentTrial-1];
+
+            // 1. FIJACIÓN (2s)
+            showElement('fixation');
+            await sleep(2000);
+            hideAll();
+
+            // 2. AVISO (1.5s)
+            if(type === 'reward') showElement('circle');
+            else if(type === 'loss') showElement('triangle');
+            else showElement('square');
+            await sleep(1500);
+            hideAll();
+
+            // 3. ESPERA (5s) - CAPTURA DE PUPILA
+            showElement('fixation');
+            await sleep(5000);
+            hideAll();
+
+            // 4. TARGET (CUADRADO GRIS)
+            showElement('target');
+            startTime = Date.now();
+            canPress = true;
+            
+            let reactionTime = await waitForSpace();
+            canPress = false;
+            hideAll();
+
+            // 5. FEEDBACK
+            const fb = document.getElementById('feedback');
+            if (reactionTime > 0 && reactionTime < targetDuration) {
+                if(type === 'reward') score += 100;
+                fb.innerText = `¡LOGRADO! ${reactionTime}ms`;
+                fb.style.color = "#00ff00";
+                targetDuration = Math.max(180, targetDuration - 25);
+            } else {
+                if(type === 'loss') score -= 100;
+                fb.innerText = reactionTime === 0 ? "MUY LENTO" : "ANTICIPADO";
+                fb.style.color = "#ff4d4d";
+                targetDuration = Math.min(700, targetDuration + 25);
+            }
+            document.getElementById('score-display').innerText = `Puntos: ${score}`;
+            showElement('feedback');
+            await sleep(1500);
+            hideAll();
+
+            nextTrial();
         }
 
+        function showElement(id) { document.getElementById(id).style.display = 'block'; }
+        function hideAll() { 
+            ['fixation','circle','triangle','square','target','feedback'].forEach(id => {
+                document.getElementById(id).style.display = 'none';
+            });
+        }
         function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+        function waitForSpace() {
+            return new Promise(resolve => {
+                const timeout = setTimeout(() => {
+                    window.removeEventListener('keydown', handler);
+                    resolve(0); 
+                }, targetDuration);
+
+                function handler(e) {
+                    if (e.code === 'Space' && canPress) {
+                        const rt = Date.now() - startTime;
+                        clearTimeout(timeout);
+                        window.removeEventListener('keydown', handler);
+                        resolve(rt);
+                    }
+                }
+                window.addEventListener('keydown', handler);
+            });
+        }
+
+        function finishTest() {
+            mediaRecorder.stop();
+            document.getElementById('final').style.display = 'block';
+            document.getElementById('puntos-finales').innerText = `Puntaje final: ${score}`;
+        }
+
+        function saveVideo() {
+            const blob = new Blob(recordedChunks, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            document.getElementById('downloadBtn').onclick = () => {
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `test_ojos_${Date.now()}.webm`;
+                a.click();
+            };
+        }
     </script>
 </body>
-</html>  
+</html>
