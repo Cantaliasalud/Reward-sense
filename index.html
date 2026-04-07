@@ -30,6 +30,7 @@
         #calibration-screen { display: none; z-index: 250; }
         
         .btn { background: #FFBF00; color: #000; padding: 20px 50px; font-size: 22px; font-weight: 900; border: none; border-radius: 12px; cursor: pointer; margin-top: 30px; }
+        .btn:disabled { background: #555; cursor: not-allowed; }
         input { background: #111; border: 2px solid #333; color: #FFBF00; padding: 15px; font-size: 20px; text-align: center; border-radius: 10px; margin: 15px; width: 300px; }
         
         .instruction-box { background: #111; border: 1px solid #333; padding: 25px; border-radius: 20px; max-width: 500px; margin-bottom: 20px; line-height: 1.6; }
@@ -50,20 +51,20 @@
         <div class="instruction-box">
             <b>INSTRUCCIONES:</b><br>
             1. Ingrese su ID de paciente.<br>
-            2. Pase la fase de calibración sin moverse.<br>
-            3. Reaccione a los cuadros blancos con la <b>Barra Espaciadora</b>.<br>
-            4. Objetivo: Superar los 3,500 puntos.
+            2. Permita el acceso a la cámara cuando se le pida.<br>
+            3. No se mueva durante la calibración inicial.<br>
+            4. Reaccione al cuadro blanco con la <b>Barra Espaciadora</b>.
         </div>
         <input type="text" id="patient-id" placeholder="ID DEL PACIENTE">
-        <button class="btn" onclick="startCalibration()">INICIAR PROTOCOLO</button>
+        <button class="btn" id="startBtn" onclick="startCalibration()">INICIAR PROTOCOLO</button>
     </div>
 
     <div id="calibration-screen" class="overlay">
         <h2 style="color:#FFBF00;">FASE DE CALIBRACIÓN</h2>
         <div class="instruction-box" style="border-color: #FFBF00;">
             <b>POR FAVOR, NO SE MUEVA.</b><br>
-            Mantenga la mirada fija en el punto gris del centro.<br>
-            Evite parpadear si es posible durante la cuenta atrás.
+            Mantenga la mirada fija en el punto gris.<br>
+            La grabación ha comenzado.
         </div>
         <div id="fixation-cal" style="width: 16px; height: 16px; background: #555; border-radius: 50%; margin: 20px;"></div>
         <div id="cal-timer">10</div>
@@ -81,7 +82,7 @@
         <div style="font-size: 32px; border: 2px solid #FFBF00; padding: 30px; border-radius: 20px;">
             BÓVEDA FINAL: <span id="puntos-finales" class="gold">0</span> 💰
         </div>
-        <button class="btn" id="downloadBtn">DESCARGAR Y ENVIAR AL DOCTOR</button>
+        <button class="btn" id="downloadBtn">DESCARGAR RESULTADOS</button>
     </div>
 
     <video id="webcam" autoplay muted style="display:none;"></video>
@@ -98,21 +99,27 @@
         let patientName = "";
         let mediaRecorder;
 
+        // Mezclar rondas
         const types = ['reward', 'loss', 'neutral'];
         for(let i=0; i<12; i++) trials.push(...types);
         trials = trials.sort(() => Math.random() - 0.5);
 
         async function startCalibration() {
             patientName = document.getElementById('patient-id').value.trim() || "Anonimo";
+            const btn = document.getElementById('startBtn');
+            btn.disabled = true;
+            btn.innerText = "Cargando cámara...";
+
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 document.getElementById('webcam').srcObject = stream;
+                
                 mediaRecorder = new MediaRecorder(stream);
-                mediaRecorder.ondataavailable = e => recordedChunks.push(e.data);
+                mediaRecorder.ondataavailable = e => { if(e.data.size > 0) recordedChunks.push(e.data); };
                 mediaRecorder.onstop = prepareDownloads;
                 mediaRecorder.start();
+                
                 videoStartTime = Date.now();
-
                 document.getElementById('setup-screen').style.display = 'none';
                 document.getElementById('calibration-screen').style.display = 'flex';
 
@@ -125,7 +132,11 @@
                         initGame();
                     }
                 }, 1000);
-            } catch(e) { alert("Error: Se requiere acceso a la cámara."); }
+            } catch(e) { 
+                alert("Error: No se pudo acceder a la cámara. Verifique los permisos."); 
+                btn.disabled = false;
+                btn.innerText = "INICIAR PROTOCOLO";
+            }
         }
 
         function initGame() {
@@ -142,23 +153,29 @@
             document.getElementById('progress-bar').style.width = (currentTrial/36*100) + "%";
             const type = trials[currentTrial-1];
 
+            // 1. FIJACIÓN (2s)
             hideAll(); showElement('fixation'); await sleep(2000); 
+            
+            // 2. CUE (1.5s)
             hideAll();
             if(type === 'reward') showElement('circle');
             else if(type === 'loss') showElement('triangle');
             else showElement('square');
             await sleep(1500); 
 
+            // 3. ESPERA (5s) - MOMENTO CLAVE DE CAPTURA
             hideAll();
             let startWait = (Date.now() - videoStartTime) / 1000;
             showElement('fixation'); await sleep(5000); 
             let endWait = (Date.now() - videoStartTime) / 1000;
 
+            // 4. TARGET
             hideAll(); showElement('target');
             let t0 = Date.now();
             let rt = await waitForSpace(t0);
             hideAll();
 
+            // 5. LÓGICA DE PUNTOS
             const fb = document.getElementById('feedback');
             let pts = 0;
             if (rt > 0 && rt < targetDuration) {
@@ -166,3 +183,79 @@
                     streak++;
                     let mult = (streak >= 3 && type === 'reward') ? 2 : 1;
                     pts = type === 'reward' ? 100 * mult : 0;
+                    fb.innerText = mult > 1 ? "¡JACKPOT! +200" : (type === 'reward' ? "¡GANASTE! +100" : "¡EVITADO!");
+                } else { fb.innerText = "OK"; }
+                fb.style.color = "#00ff00";
+                targetDuration = Math.max(180, targetDuration - 25);
+            } else {
+                if(type !== 'neutral') streak = 0;
+                if(type === 'loss') pts = -100;
+                fb.innerText = (type === 'neutral') ? "LENTO" : (type === 'loss' ? "-100" : "LENTO");
+                fb.style.color = "#ff4136";
+                targetDuration = Math.min(700, targetDuration + 30);
+            }
+
+            score += pts;
+            document.getElementById('score-display').innerText = score;
+            document.getElementById('streak-val').innerText = streak;
+            eventLog += `${patientName},${type},${startWait.toFixed(2)},${endWait.toFixed(2)},${pts},${streak}\n`;
+            
+            showElement('feedback'); await sleep(1200); hideAll();
+            nextTrial();
+        }
+
+        // --- FUNCIONES AUXILIARES ---
+        function showElement(id) { document.getElementById(id).style.display = 'block'; }
+        function hideAll() { ['fixation','circle','triangle','square','target','feedback'].forEach(id => document.getElementById(id).style.display = 'none'); }
+        function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+        
+        function waitForSpace(t0) {
+            return new Promise(resolve => {
+                let solved = false;
+                const timeout = setTimeout(() => { 
+                    if(!solved){ 
+                        window.removeEventListener('keydown', h); 
+                        resolve(0); 
+                    } 
+                }, targetDuration);
+                
+                const h = (e) => { 
+                    if (e.code === 'Space') { 
+                        solved = true; 
+                        clearTimeout(timeout); 
+                        window.removeEventListener('keydown', h); 
+                        resolve(Date.now() - t0); 
+                    } 
+                };
+                window.addEventListener('keydown', h);
+            });
+        }
+
+        function finishTest() {
+            if(mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+            document.getElementById('ui').style.display = 'none';
+            document.getElementById('final').style.display = 'flex';
+            document.getElementById('puntos-finales').innerText = score;
+        }
+
+        function prepareDownloads() {
+            const vBlob = new Blob(recordedChunks, { type: 'video/webm' });
+            const lBlob = new Blob([eventLog], { type: 'text/plain' });
+            
+            document.getElementById('downloadBtn').onclick = () => {
+                const aV = document.createElement('a');
+                aV.href = URL.createObjectURL(vBlob);
+                aV.download = `${patientName}_video.webm`;
+                aV.click();
+                
+                setTimeout(() => {
+                    const aL = document.createElement('a');
+                    aL.href = URL.createObjectURL(lBlob);
+                    aL.download = `${patientName}_log.txt`;
+                    aL.click();
+                }, 1000);
+            };
+        }
+    </script>
+</body>
+</html> 
