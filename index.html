@@ -1,213 +1,455 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Reward-Sense: Clinical Gold Vault v3.7</title>
-    <style>
-        /* FONDO GRIS ISOLUMINANTE (Brendler Standard) */
-        body { background: #808080; color: #fff; font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; overflow: hidden; height: 100vh; width: 100vw; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        
-        #ui { position: absolute; top: 0; width: 100%; padding: 25px; display: flex; justify-content: space-around; font-size: 24px; background: rgba(0,0,0,0.4); z-index: 100; border-bottom: 1px solid #444; }
-        #vault-container { border: 2px solid #FFBF00; padding: 10px 30px; border-radius: 50px; background: rgba(0,0,0,0.9); box-shadow: 0 0 15px rgba(255,191,0,0.2); }
-        .gold { color: #FFBF00; font-weight: bold; }
+  <meta charset="UTF-8" />
+  <title>Reward-Sense Remoto v4</title>
+  <style>
+    body {
+      background: #808080;
+      color: #fff;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      margin: 0;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
 
-        #progress-container { position: absolute; bottom: 0; width: 100%; height: 10px; background: #333; }
-        #progress-bar { width: 0%; height: 100%; background: #FFBF00; transition: width 0.5s; }
+    #ui {
+      position: absolute;
+      top: 0;
+      width: 100%;
+      padding: 20px;
+      display: none;
+      justify-content: space-around;
+      font-size: 22px;
+      background: rgba(0,0,0,0.35);
+      z-index: 100;
+    }
 
-        .shape { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 50; }
-        #fixation { width: 16px; height: 16px; background: #eee; border-radius: 50%; }
-        #circle { width: 180px; height: 180px; border: 12px solid #FFBF00; border-radius: 50%; background: #808080; }
-        #triangle { width: 0; height: 0; border-left: 90px solid transparent; border-right: 90px solid transparent; border-bottom: 180px solid #ff4136; }
-        #square { width: 160px; height: 160px; border: 12px solid #fff; background: #808080; }
-        #target { width: 180px; height: 180px; background: #fff; border-radius: 15px; }
-        #feedback { font-size: 70px; font-weight: 900; text-align: center; width: 100%; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); }
+    .gold { color: #FFBF00; font-weight: bold; }
 
-        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 200; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; box-sizing: border-box; }
-        #setup-screen { z-index: 300; }
-        #calibration-screen { display: none; z-index: 250; }
-        
-        .btn { background: #FFBF00; color: #000; padding: 20px 50px; font-size: 22px; font-weight: 900; border: none; border-radius: 12px; cursor: pointer; margin-top: 30px; }
-        input { background: #111; border: 2px solid #333; color: #FFBF00; padding: 15px; font-size: 20px; text-align: center; border-radius: 10px; margin: 15px; width: 300px; }
-        .instruction-box { background: #111; border: 1px solid #444; padding: 25px; border-radius: 20px; max-width: 500px; margin-bottom: 20px; line-height: 1.6; }
-        #cal-timer { font-size: 60px; color: #FFBF00; font-weight: bold; }
-    </style>
+    #progress-container {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      height: 10px;
+      background: #333;
+    }
+
+    #progress-bar {
+      width: 0%;
+      height: 100%;
+      background: #FFBF00;
+      transition: width 0.4s;
+    }
+
+    .shape {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    #fixation {
+      width: 16px;
+      height: 16px;
+      background: #eee;
+      border-radius: 50%;
+    }
+
+    #circle {
+      width: 180px;
+      height: 180px;
+      border: 12px solid #FFBF00;
+      border-radius: 50%;
+      background: #808080;
+    }
+
+    #triangle {
+      width: 0;
+      height: 0;
+      border-left: 90px solid transparent;
+      border-right: 90px solid transparent;
+      border-bottom: 180px solid #ff4136;
+    }
+
+    #square {
+      width: 160px;
+      height: 160px;
+      border: 12px solid #fff;
+      background: #808080;
+    }
+
+    #target {
+      width: 180px;
+      height: 180px;
+      background: #fff;
+      border-radius: 15px;
+    }
+
+    #feedback {
+      font-size: 64px;
+      font-weight: 900;
+      text-align: center;
+      width: 100%;
+      text-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.88);
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .btn {
+      background: #FFBF00;
+      color: #000;
+      padding: 18px 40px;
+      font-size: 20px;
+      font-weight: 900;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      margin-top: 24px;
+    }
+
+    input {
+      background: #111;
+      border: 2px solid #333;
+      color: #FFBF00;
+      padding: 14px;
+      font-size: 20px;
+      text-align: center;
+      border-radius: 10px;
+      margin-top: 14px;
+      width: 280px;
+    }
+
+    .instruction-box {
+      background: #111;
+      border: 1px solid #444;
+      padding: 24px;
+      border-radius: 18px;
+      max-width: 560px;
+      line-height: 1.6;
+      margin-bottom: 18px;
+    }
+
+    #cal-timer {
+      font-size: 56px;
+      color: #FFBF00;
+      font-weight: bold;
+      margin-top: 12px;
+    }
+  </style>
 </head>
 <body>
 
-    <div id="ui" style="display:none;">
-        <div>RONDA <span id="ronda-val" class="gold">0</span> / 36</div>
-        <div id="vault-container">💰 BÓVEDA: <span id="score-display" class="gold">1000</span></div>
-        <div>RACHA: <span id="streak-val" class="gold">0</span></div>
+  <div id="ui">
+    <div>RONDA <span id="ronda-val" class="gold">0</span> / 36</div>
+    <div>💰 BÓVEDA: <span id="score-display" class="gold">1000</span></div>
+    <div>RACHA: <span id="streak-val" class="gold">0</span></div>
+  </div>
+
+  <div id="progress-container"><div id="progress-bar"></div></div>
+
+  <div id="setup-screen" class="overlay">
+    <h1 style="color:#FFBF00;">REWARD-SENSE REMOTO v4</h1>
+    <div class="instruction-box">
+      <b>PROTOCOLO:</b><br>
+      1. Mantenga luz uniforme en el rostro.<br>
+      2. Distancia recomendada: 50 cm.<br>
+      3. Mire el centro durante la espera.<br>
+      4. Use <b>Barra Espaciadora</b> al ver el cuadro blanco.<br>
+      5. La ventana de medición principal ocurre durante 6 segundos antes del target.
     </div>
-    <div id="progress-container"><div id="progress-bar"></div></div>
+    <input type="text" id="patient-id" placeholder="ID DEL PACIENTE">
+    <button class="btn" onclick="startCalibration()">INICIAR CAPTURA</button>
+  </div>
 
-    <div id="setup-screen" class="overlay">
-        <h1 style="color:#FFBF00; font-size: 45px;">REWARD-SENSE REMOTO v3.7</h1>
-        <div class="instruction-box">
-            <b>PROTOCOLO DE SCREENING:</b><br>
-            1. Mantenga una luz uniforme en su rostro.<br>
-            2. Distancia recomendada: 50 cm de la pantalla.<br>
-            3. <b>Importante:</b> No parpadee durante la espera si es posible.<br>
-            4. Use <b>Barra Espaciadora</b> para capturar el cuadro blanco.
-        </div>
-        <input type="text" id="patient-id" placeholder="ID DEL PACIENTE">
-        <button class="btn" id="startBtn" onclick="startCalibration()">INICIAR CAPTURA</button>
-    </div>
+  <div id="calibration-screen" class="overlay" style="display:none;">
+    <h2 style="color:#FFBF00;">CALIBRANDO LÍNEA BASE</h2>
+    <div id="fixation-cal" style="width: 16px; height: 16px; background: #fff; border-radius: 50%; margin: 20px;"></div>
+    <div id="cal-timer">10</div>
+  </div>
 
-    <div id="calibration-screen" class="overlay">
-        <h2 style="color:#FFBF00;">CALIBRANDO LÍNEA BASE</h2>
-        <div id="fixation-cal" style="width: 16px; height: 16px; background: #fff; border-radius: 50%; margin: 20px;"></div>
-        <div id="cal-timer">10</div>
-    </div>
+  <div id="final" class="overlay" style="display:none;">
+    <h1>PROTOCOLO COMPLETADO</h1>
+    <button class="btn" id="downloadBtn">GUARDAR DATOS PARA EL MÉDICO</button>
+  </div>
 
-    <div id="fixation" class="shape"></div>
-    <div id="circle" class="shape"></div>
-    <div id="triangle" class="shape"></div>
-    <div id="square" class="shape"></div>
-    <div id="target" class="shape"></div>
-    <div id="feedback" class="shape"></div>
+  <div id="fixation" class="shape"></div>
+  <div id="circle" class="shape"></div>
+  <div id="triangle" class="shape"></div>
+  <div id="square" class="shape"></div>
+  <div id="target" class="shape"></div>
+  <div id="feedback" class="shape"></div>
 
-    <div id="final" class="overlay" style="display:none;">
-        <h1>PROTOCOLO COMPLETADO</h1>
-        <button class="btn" id="downloadBtn">GUARDAR DATOS PARA EL MÉDICO</button>
-    </div>
+  <video id="webcam" autoplay muted playsinline style="display:none;"></video>
 
-    <video id="webcam" autoplay muted style="display:none;"></video>
+  <script>
+    const N_TRIALS_PER_TYPE = 12;
+    const FIX_MS = 2000;
+    const CUE_MS = 1500;
+    const DELAY_MS = 6000;
+    const FEEDBACK_MS = 1200;
 
-    <script>
-        let score = 1000, currentTrial = 0, streak = 0, targetDuration = 450;
-        let trials = [], recordedChunks = [], patientName = "", mediaRecorder;
-        let eventLog = "Paciente,Tipo,Inicio_Espera_Seg,Fin_Espera_Seg,Puntos,Racha\n";
-        let videoStartTime = 0;
+    let score = 1000;
+    let streak = 0;
+    let currentTrial = 0;
+    let targetDuration = 450;
+    let patientName = "";
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let videoStartTime = 0;
 
-        const types = ['reward', 'loss', 'neutral'];
-        for(let i=0; i<12; i++) trials.push(...types);
-        trials = trials.sort(() => Math.random() - 0.5);
+    let trials = [];
+    ["reward", "loss", "neutral"].forEach(t => {
+      for (let i = 0; i < N_TRIALS_PER_TYPE; i++) trials.push(t);
+    });
+    trials = trials.sort(() => Math.random() - 0.5);
 
-        async function startCalibration() {
-            patientName = document.getElementById('patient-id').value.trim() || "Anonimo";
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { width: 1280, height: 720, frameRate: { ideal: 60 } } 
-                });
-                document.getElementById('webcam').srcObject = stream;
-                
-                // BITRATE ALTO (5Mbps) para evitar pixelación de la pupila
-                mediaRecorder = new MediaRecorder(stream, { 
-                    mimeType: 'video/webm;codecs=vp9',
-                    videoBitsPerSecond: 5000000 
-                });
-                
-                mediaRecorder.ondataavailable = e => recordedChunks.push(e.data);
-                mediaRecorder.onstop = prepareDownloads;
-                mediaRecorder.start();
-                
-                videoStartTime = Date.now();
-                document.getElementById('setup-screen').style.display = 'none';
-                document.getElementById('calibration-screen').style.display = 'flex';
+    let eventLog =
+      "Paciente,Trial,Tipo,Inicio_Cue_Seg,Inicio_Espera_Seg,Fin_Espera_Seg,RT_ms,Hit,Puntos,Racha,TargetDuration_ms\n";
 
-                let timeLeft = 10;
-                let timer = setInterval(() => {
-                    timeLeft--;
-                    document.getElementById('cal-timer').innerText = timeLeft;
-                    if(timeLeft <= 0) { clearInterval(timer); initGame(); }
-                }, 1000);
-            } catch(e) { alert("Error de cámara."); }
+    function tsFromStart() {
+      return (Date.now() - videoStartTime) / 1000;
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function showElement(id) {
+      document.getElementById(id).style.display = "block";
+    }
+
+    function hideAll() {
+      ["fixation", "circle", "triangle", "square", "target", "feedback"]
+        .forEach(id => document.getElementById(id).style.display = "none");
+    }
+
+    async function startCalibration() {
+      patientName = document.getElementById("patient-id").value.trim() || "Anonimo";
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: 1280,
+            height: 720,
+            frameRate: { ideal: 60 }
+          },
+          audio: false
+        });
+
+        document.getElementById("webcam").srcObject = stream;
+
+        mediaRecorder = new MediaRecorder(stream, {
+          mimeType: "video/webm;codecs=vp9",
+          videoBitsPerSecond: 5000000
+        });
+
+        mediaRecorder.ondataavailable = e => {
+          if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = prepareDownloads;
+        mediaRecorder.start();
+
+        videoStartTime = Date.now();
+
+        document.getElementById("setup-screen").style.display = "none";
+        document.getElementById("calibration-screen").style.display = "flex";
+
+        let timeLeft = 10;
+        document.getElementById("cal-timer").innerText = timeLeft;
+        const timer = setInterval(() => {
+          timeLeft -= 1;
+          document.getElementById("cal-timer").innerText = timeLeft;
+          if (timeLeft <= 0) {
+            clearInterval(timer);
+            initGame();
+          }
+        }, 1000);
+
+      } catch (e) {
+        alert("Error de cámara.");
+      }
+    }
+
+    function initGame() {
+      document.getElementById("calibration-screen").style.display = "none";
+      document.getElementById("ui").style.display = "flex";
+      nextTrial();
+    }
+
+    async function nextTrial() {
+      if (currentTrial >= 36) {
+        finishTest();
+        return;
+      }
+
+      currentTrial += 1;
+      const trialType = trials[currentTrial - 1];
+
+      document.getElementById("ronda-val").innerText = currentTrial;
+      document.getElementById("progress-bar").style.width = `${(currentTrial / 36) * 100}%`;
+
+      hideAll();
+      showElement("fixation");
+      await sleep(FIX_MS);
+
+      hideAll();
+      const cueStart = tsFromStart();
+
+      if (trialType === "reward") showElement("circle");
+      else if (trialType === "loss") showElement("triangle");
+      else showElement("square");
+
+      await sleep(CUE_MS);
+
+      hideAll();
+
+      const delayStart = tsFromStart();
+      showElement("fixation");
+      await sleep(DELAY_MS);
+      const delayEnd = tsFromStart();
+
+      hideAll();
+      showElement("target");
+
+      const t0 = Date.now();
+      const rt = await waitForSpace(t0, targetDuration);
+      hideAll();
+
+      let hit = 0;
+      let points = 0;
+      let fbText = "LENTO";
+      let fbColor = "#ff4136";
+
+      if (rt > 0 && rt < targetDuration) {
+        hit = 1;
+
+        if (trialType === "reward") {
+          streak += 1;
+          points = streak >= 3 ? 200 : 100;
+          fbText = `+${points}`;
+        } else if (trialType === "loss") {
+          streak += 1;
+          points = 0;
+          fbText = "EVITADO";
+        } else {
+          fbText = "OK";
         }
 
-        function initGame() {
-            document.getElementById('calibration-screen').style.display = 'none';
-            document.getElementById('ui').style.display = 'flex';
-            nextTrial();
+        fbColor = "#00ff00";
+        targetDuration = Math.max(180, targetDuration - 25);
+
+      } else {
+        if (trialType !== "neutral") streak = 0;
+
+        if (trialType === "loss") {
+          points = -100;
+          fbText = "-100";
+        } else {
+          fbText = "LENTO";
         }
 
-        async function nextTrial() {
-            if (currentTrial >= 36) { finishTest(); return; }
-            currentTrial++;
-            document.getElementById('ronda-val').innerText = currentTrial;
-            document.getElementById('progress-bar').style.width = (currentTrial/36*100) + "%";
-            const type = trials[currentTrial-1];
+        fbColor = "#ff4136";
+        targetDuration = Math.min(700, targetDuration + 30);
+      }
 
-            hideAll(); showElement('fixation'); await sleep(2000); 
-            hideAll();
-            if(type === 'reward') showElement('circle');
-            else if(type === 'loss') showElement('triangle');
-            else showElement('square');
-            await sleep(1500); 
+      score += points;
+      document.getElementById("score-display").innerText = score;
+      document.getElementById("streak-val").innerText = streak;
 
-            // --- VENTANA DE 6 SEGUNDOS (Estándar Brendler) ---
-            hideAll();
-            let startWait = (Date.now() - videoStartTime) / 1000;
-            showElement('fixation'); 
-            await sleep(6000); // Cambio de 5000 a 6000ms
-            let endWait = (Date.now() - videoStartTime) / 1000;
+      eventLog += [
+        patientName,
+        currentTrial,
+        trialType,
+        cueStart.toFixed(3),
+        delayStart.toFixed(3),
+        delayEnd.toFixed(3),
+        rt,
+        hit,
+        points,
+        streak,
+        targetDuration
+      ].join(",") + "\n";
 
-            hideAll(); showElement('target');
-            let t0 = Date.now();
-            let rt = await waitForSpace(t0);
-            hideAll();
+      const fb = document.getElementById("feedback");
+      fb.innerText = fbText;
+      fb.style.color = fbColor;
+      showElement("feedback");
+      await sleep(FEEDBACK_MS);
+      hideAll();
 
-            let pts = 0;
-            const fb = document.getElementById('feedback');
-            if (rt > 0 && rt < targetDuration) {
-                if(type !== 'neutral') {
-                    streak++;
-                    pts = type === 'reward' ? (streak >= 3 ? 200 : 100) : 0;
-                    fb.innerText = type === 'reward' ? `+${pts}` : "¡EVITADO!";
-                } else fb.innerText = "OK";
-                fb.style.color = "#00ff00";
-                targetDuration = Math.max(180, targetDuration - 25);
-            } else {
-                if(type !== 'neutral') streak = 0;
-                if(type === 'loss') pts = -100;
-                fb.innerText = type === 'loss' ? "-100" : "LENTO";
-                fb.style.color = "#ff4136";
-                targetDuration = Math.min(700, targetDuration + 30);
-            }
+      nextTrial();
+    }
 
-            score += pts;
-            document.getElementById('score-display').innerText = score;
-            document.getElementById('streak-val').innerText = streak;
-            eventLog += `${patientName},${type},${startWait.toFixed(2)},${endWait.toFixed(2)},${pts},${streak}\n`;
-            
-            showElement('feedback'); await sleep(1200); hideAll();
-            nextTrial();
-        }
+    function waitForSpace(t0, maxDurationMs) {
+      return new Promise(resolve => {
+        let solved = false;
 
-        function showElement(id) { document.getElementById(id).style.display = 'block'; }
-        function hideAll() { ['fixation','circle','triangle','square','target','feedback'].forEach(id => document.getElementById(id).style.display = 'none'); }
-        function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-        function waitForSpace(t0) {
-            return new Promise(resolve => {
-                let solved = false;
-                const timeout = setTimeout(() => { if(!solved){ window.removeEventListener('keydown', h); resolve(0); } }, targetDuration);
-                const h = (e) => { if (e.code === 'Space') { solved = true; clearTimeout(timeout); window.removeEventListener('keydown', h); resolve(Date.now() - t0); } };
-                window.addEventListener('keydown', h);
-            });
-        }
+        const timeout = setTimeout(() => {
+          if (!solved) {
+            window.removeEventListener("keydown", handler);
+            resolve(0);
+          }
+        }, maxDurationMs);
 
-        function finishTest() {
-            if(mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-            document.getElementById('ui').style.display = 'none';
-            document.getElementById('final').style.display = 'flex';
-        }
+        const handler = e => {
+          if (e.code === "Space") {
+            solved = true;
+            clearTimeout(timeout);
+            window.removeEventListener("keydown", handler);
+            resolve(Date.now() - t0);
+          }
+        };
 
-        function prepareDownloads() {
-            const vBlob = new Blob(recordedChunks, { type: 'video/webm' });
-            const lBlob = new Blob([eventLog], { type: 'text/plain' });
-            document.getElementById('downloadBtn').onclick = () => {
-                const aV = document.createElement('a');
-                aV.href = URL.createObjectURL(vBlob);
-                aV.download = `${patientName}_video.webm`;
-                aV.click();
-                setTimeout(() => {
-                    const aL = document.createElement('a');
-                    aL.href = URL.createObjectURL(lBlob);
-                    aL.download = `${patientName}_log.txt`;
-                    aL.click();
-                }, 1000);
-            };
-        }
-    </script>
+        window.addEventListener("keydown", handler);
+      });
+    }
+
+    function finishTest() {
+      if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
+      }
+
+      document.getElementById("ui").style.display = "none";
+      document.getElementById("final").style.display = "flex";
+    }
+
+    function prepareDownloads() {
+      const videoBlob = new Blob(recordedChunks, { type: "video/webm" });
+      const logBlob = new Blob([eventLog], { type: "text/plain" });
+
+      document.getElementById("downloadBtn").onclick = () => {
+        const aV = document.createElement("a");
+        aV.href = URL.createObjectURL(videoBlob);
+        aV.download = `${patientName}_video.webm`;
+        aV.click();
+
+        setTimeout(() => {
+          const aL = document.createElement("a");
+          aL.href = URL.createObjectURL(logBlob);
+          aL.download = `${patientName}_log.txt`;
+          aL.click();
+        }, 800);
+      };
+    }
+  </script>
 </body>
-</html>
+</html> 
