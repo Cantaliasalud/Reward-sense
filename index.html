@@ -2,10 +2,10 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Reward-Sense Remoto v4</title>
+  <title>Reward-Sense Remoto v4.1 (M4 Optimized)</title>
   <style>
     body {
-      background: #808080;
+      background: #808080; /* Gris neutro para evitar miosis por brillo excesivo */
       color: #fff;
       font-family: "Segoe UI", Tahoma, sans-serif;
       margin: 0;
@@ -64,7 +64,7 @@
     #circle {
       width: 180px;
       height: 180px;
-      border: 12px solid #FFBF00;
+      border: 12px solid #FFBF00; /* Recompensa (Oro) */
       border-radius: 50%;
       background: #808080;
     }
@@ -74,13 +74,13 @@
       height: 0;
       border-left: 90px solid transparent;
       border-right: 90px solid transparent;
-      border-bottom: 180px solid #ff4136;
+      border-bottom: 180px solid #ff4136; /* Pérdida (Rojo) */
     }
 
     #square {
       width: 160px;
       height: 160px;
-      border: 12px solid #fff;
+      border: 12px solid #fff; /* Neutral (Blanco) */
       background: #808080;
     }
 
@@ -102,7 +102,7 @@
     .overlay {
       position: absolute;
       inset: 0;
-      background: rgba(0,0,0,0.88);
+      background: rgba(0,0,0,0.92);
       z-index: 200;
       display: flex;
       flex-direction: column;
@@ -166,28 +166,27 @@
   <div id="progress-container"><div id="progress-bar"></div></div>
 
   <div id="setup-screen" class="overlay">
-    <h1 style="color:#FFBF00;">REWARD-SENSE REMOTO v4</h1>
+    <h1 style="color:#FFBF00;">REWARD-SENSE REMOTO v4.1</h1>
     <div class="instruction-box">
-      <b>PROTOCOLO:</b><br>
-      1. Mantenga luz uniforme en el rostro.<br>
-      2. Distancia recomendada: 50 cm.<br>
-      3. Mire el centro durante la espera.<br>
-      4. Use <b>Barra Espaciadora</b> al ver el cuadro blanco.<br>
-      5. La ventana de medición principal ocurre durante 6 segundos antes del target.
+      <b>INSTRUCCIONES PARA EL PACIENTE:</b><br>
+      1. Mire fijamente al punto central.<br>
+      2. No desvíe la mirada durante los 6 segundos de espera.<br>
+      3. Presione <b>Espacio</b> rápido cuando vea el cuadro blanco.<br>
+      4. El video se procesará de forma privada en el servidor clínico.
     </div>
     <input type="text" id="patient-id" placeholder="ID DEL PACIENTE">
-    <button class="btn" onclick="startCalibration()">INICIAR CAPTURA</button>
+    <button class="btn" onclick="startCalibration()">ACCEDER A CÁMARA</button>
   </div>
 
   <div id="calibration-screen" class="overlay" style="display:none;">
-    <h2 style="color:#FFBF00;">CALIBRANDO LÍNEA BASE</h2>
+    <h2 style="color:#FFBF00;">ESTABLECIENDO LÍNEA BASE PUPILAR</h2>
     <div id="fixation-cal" style="width: 16px; height: 16px; background: #fff; border-radius: 50%; margin: 20px;"></div>
     <div id="cal-timer">10</div>
   </div>
 
   <div id="final" class="overlay" style="display:none;">
-    <h1>PROTOCOLO COMPLETADO</h1>
-    <button class="btn" id="downloadBtn">GUARDAR DATOS PARA EL MÉDICO</button>
+    <h1>SESIÓN FINALIZADA</h1>
+    <button class="btn" id="downloadBtn">DESCARGAR DATOS CLÍNICOS</button>
   </div>
 
   <div id="fixation" class="shape"></div>
@@ -200,10 +199,10 @@
   <video id="webcam" autoplay muted playsinline style="display:none;"></video>
 
   <script>
-    const N_TRIALS_PER_TYPE = 12;
+    const N_TRIALS_PER_TYPE = 12; // Total 36 ensayos
     const FIX_MS = 2000;
     const CUE_MS = 1500;
-    const DELAY_MS = 6000;
+    const DELAY_MS = 6000; // Ventana crítica de Brendler (Replicación 2024) [cite: 772]
     const FEEDBACK_MS = 1200;
 
     let score = 1000;
@@ -221,8 +220,7 @@
     });
     trials = trials.sort(() => Math.random() - 0.5);
 
-    let eventLog =
-      "Paciente,Trial,Tipo,Inicio_Cue_Seg,Inicio_Espera_Seg,Fin_Espera_Seg,RT_ms,Hit,Puntos,Racha,TargetDuration_ms\n";
+    let eventLog = "Paciente,Trial,Tipo,Inicio_Cue_Seg,Inicio_Espera_Seg,Fin_Espera_Seg,RT_ms,Hit,Puntos,Racha,TargetDuration_ms\n";
 
     function tsFromStart() {
       return (Date.now() - videoStartTime) / 1000;
@@ -247,19 +245,26 @@
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
-            width: 1280,
-            height: 720,
-            frameRate: { ideal: 60 }
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            frameRate: { ideal: 30 }
           },
           audio: false
         });
 
         document.getElementById("webcam").srcObject = stream;
 
-        mediaRecorder = new MediaRecorder(stream, {
-          mimeType: "video/webm;codecs=vp9",
-          videoBitsPerSecond: 5000000
-        });
+        // SELECTOR DE CÓDEC INTELIGENTE (Solución al error anterior)
+        let options = { videoBitsPerSecond: 5000000 };
+        if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+          options.mimeType = 'video/webm;codecs=vp9';
+        } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) {
+          options.mimeType = 'video/webm;codecs=vp8';
+        } else {
+          options.mimeType = 'video/webm'; 
+        }
+
+        mediaRecorder = new MediaRecorder(stream, options);
 
         mediaRecorder.ondataavailable = e => {
           if (e.data && e.data.size > 0) recordedChunks.push(e.data);
@@ -285,7 +290,8 @@
         }, 1000);
 
       } catch (e) {
-        alert("Error de cámara.");
+        console.error("Error de acceso:", e);
+        alert("Error de cámara: Verifique que el sitio sea HTTPS y que no haya otras aplicaciones usando la cámara.");
       }
     }
 
@@ -321,10 +327,9 @@
       await sleep(CUE_MS);
 
       hideAll();
-
       const delayStart = tsFromStart();
       showElement("fixation");
-      await sleep(DELAY_MS);
+      await sleep(DELAY_MS); // VENTANA DE MEDICIÓN [cite: 765, 772]
       const delayEnd = tsFromStart();
 
       hideAll();
@@ -334,40 +339,28 @@
       const rt = await waitForSpace(t0, targetDuration);
       hideAll();
 
-      let hit = 0;
-      let points = 0;
-      let fbText = "LENTO";
-      let fbColor = "#ff4136";
+      let hit = 0, points = 0, fbText = "LENTO", fbColor = "#ff4136";
 
       if (rt > 0 && rt < targetDuration) {
         hit = 1;
-
+        fbColor = "#00ff00";
         if (trialType === "reward") {
           streak += 1;
           points = streak >= 3 ? 200 : 100;
           fbText = `+${points}`;
         } else if (trialType === "loss") {
           streak += 1;
-          points = 0;
           fbText = "EVITADO";
         } else {
           fbText = "OK";
         }
-
-        fbColor = "#00ff00";
         targetDuration = Math.max(180, targetDuration - 25);
-
       } else {
         if (trialType !== "neutral") streak = 0;
-
         if (trialType === "loss") {
           points = -100;
           fbText = "-100";
-        } else {
-          fbText = "LENTO";
         }
-
-        fbColor = "#ff4136";
         targetDuration = Math.min(700, targetDuration + 30);
       }
 
@@ -375,23 +368,12 @@
       document.getElementById("score-display").innerText = score;
       document.getElementById("streak-val").innerText = streak;
 
-      eventLog += [
-        patientName,
-        currentTrial,
-        trialType,
-        cueStart.toFixed(3),
-        delayStart.toFixed(3),
-        delayEnd.toFixed(3),
-        rt,
-        hit,
-        points,
-        streak,
-        targetDuration
-      ].join(",") + "\n";
+      eventLog += [patientName, currentTrial, trialType, cueStart.toFixed(3), 
+                  delayStart.toFixed(3), delayEnd.toFixed(3), rt, hit, 
+                  points, streak, targetDuration].join(",") + "\n";
 
       const fb = document.getElementById("feedback");
-      fb.innerText = fbText;
-      fb.style.color = fbColor;
+      fb.innerText = fbText; fb.style.color = fbColor;
       showElement("feedback");
       await sleep(FEEDBACK_MS);
       hideAll();
@@ -402,7 +384,6 @@
     function waitForSpace(t0, maxDurationMs) {
       return new Promise(resolve => {
         let solved = false;
-
         const timeout = setTimeout(() => {
           if (!solved) {
             window.removeEventListener("keydown", handler);
@@ -418,16 +399,12 @@
             resolve(Date.now() - t0);
           }
         };
-
         window.addEventListener("keydown", handler);
       });
     }
 
     function finishTest() {
-      if (mediaRecorder && mediaRecorder.state !== "inactive") {
-        mediaRecorder.stop();
-      }
-
+      if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
       document.getElementById("ui").style.display = "none";
       document.getElementById("final").style.display = "flex";
     }
@@ -452,4 +429,4 @@
     }
   </script>
 </body>
-</html> 
+</html>
